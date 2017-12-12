@@ -1,6 +1,43 @@
 ﻿#include "HaiDang.h"
-char dir[256];		//duong dan tep
-int HaiDang::upload(SOCKET ftpControl,SOCKET dataControl)
+char dir[256];
+//tạo luồng nhận dữ liệu
+SOCKET CreateSocketData(SOCKET ftpControl)
+{
+	int dataIp[4];
+	int dataPort[2];
+	char strIp[32];
+	send(ftpControl, "TYPE I\r\n", strlen("TYPE I\r\n"), 0); //yeu cau gui du lieu kieu binary
+	char command[128] = "PASV\n";
+	send(ftpControl, command, strlen(command), 0);
+	char buf[512];
+	int res = recv(ftpControl, buf, 512, 0);
+	buf[res] = '\0';
+	puts(buf);
+	//kiem tra co phai ma loi 227
+	if (strncmp(buf, "227", 3) != 0) {
+		return SOCKET_ERROR;
+	}
+	int rev = sscanf(buf, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r", &dataIp[0], &dataIp[1], &dataIp[2], &dataIp[3], &dataPort[0], &dataPort[1]);
+
+	sprintf(strIp, "%d.%d.%d.%d\0", dataIp[0], dataIp[1], dataIp[2], dataIp[3]);
+	int dataP = dataPort[0] * 256 + dataPort[1];
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) == SOCKET_ERROR) {
+		getchar();
+		return 0;
+	}
+	SOCKET dataControl = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	SOCKADDR_IN addrServer;
+	addrServer.sin_addr.s_addr = inet_addr("127.0.0.1");
+	addrServer.sin_port = htons(dataP);
+	addrServer.sin_family = AF_INET;
+	if (connect(dataControl, (SOCKADDR*)&addrServer, sizeof(addrServer)) == SOCKET_ERROR) {
+		return SOCKET_ERROR;
+	}
+	return dataControl;
+}
+//duong dan tep
+int upload(SOCKET ftpControl,SOCKET dataControl)
 {	
 	int res;
 	char pathServer[1024],pathClient[1024],buf[102400];
@@ -47,7 +84,7 @@ int HaiDang::upload(SOCKET ftpControl,SOCKET dataControl)
 	return 0;
 }
 
-int HaiDang::show(SOCKET ftpControl, SOCKET dataControl)
+int show(SOCKET ftpControl, SOCKET dataControl)
 {
 	char buf[1024];
 	int res;
@@ -73,14 +110,14 @@ int HaiDang::show(SOCKET ftpControl, SOCKET dataControl)
 	return 0;
 }
 
-int HaiDang::Quit(SOCKET ftpControl, SOCKET dataControl)
+int quit(SOCKET ftpControl, SOCKET dataControl)
 {
 	char*msg = "QUIT\r\n";		//Yeu cau ngat ket noi toi Server.
 	send(ftpControl, msg, strlen(msg), 0);
 	printf("Ban vua ngat ket noi toi FTP Server\n");
 }
 //download 1 file 1 luồng.
-int HaiDang::download(SOCKET ftpControl, SOCKET dataControl)
+int download(SOCKET ftpControl, SOCKET dataControl)
 {
 	int res;
 	char buf[512];
@@ -122,5 +159,26 @@ int HaiDang::download(SOCKET ftpControl, SOCKET dataControl)
 	puts(buf);
 	fclose(f);
 	closesocket(dataControl);
+	return 0;
+}
+
+int cwd(SOCKET ftpControl, SOCKET dataControl)
+{
+	char buf[512];
+	char msg[512];
+	printf("Di chuyen toi thu muc moi.\n");
+	printf("Nhap duong dan: \n");
+	fflush(stdin);
+	gets_s(dir);
+	sprintf(msg, "CWD %s\r\n", dir);		//Yeu cau di chuyen den thu muc khac
+	send(ftpControl, msg, strlen(msg), 0);
+	int len = recv(ftpControl, buf, sizeof(buf), 0);
+	buf[len] = '\0';
+	if (buf[0] == '5')						//Khong co thu muc do, hoac la mot tep
+		printf("Duong dan khong hop le\n");
+	else
+		printf("Da di chuyen toi thu muc %s\n", dir);
+	closesocket(dataControl);
+	WSACleanup();
 	return 0;
 }
