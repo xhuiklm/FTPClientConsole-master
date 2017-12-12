@@ -21,10 +21,24 @@
     <ClCompile Include="HanDuong.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="HaiDang.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HanDuong.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="HaiDang.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FTPClient.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
